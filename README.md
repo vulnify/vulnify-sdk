@@ -14,12 +14,10 @@ Optional `content` is scanned for sensitive data. The content is not stored. Mat
 
 `baseUrl` defaults to `http://localhost:3000`. The production API is `https://api.vulnify.io`.
 
-This package is not published to npm yet. Install it from this repository.
-
 ## Install
 
 ```bash
-npm install github:vulnify/vulnify-sdk
+npm install @vulnify/sdk
 ```
 
 Node.js 18 or newer.
