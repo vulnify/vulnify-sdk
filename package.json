@@ -13,7 +13,7 @@
   "publishConfig": { "access": "public" },
   "engines": { "node": ">=18" },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
     "prepare": "npm run build",
     "test": "jest",
     "lint": "tsc --noEmit -p tsconfig.json"
