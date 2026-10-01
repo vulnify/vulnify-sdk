@@ -1,6 +1,6 @@
 {
   "name": "@vulnify/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vulnify SDK: ask Vulnify whether an AI agent action is allowed before running it.",
   "license": "MIT",
   "repository": {

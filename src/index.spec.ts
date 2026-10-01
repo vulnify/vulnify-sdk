@@ -31,9 +31,21 @@ describe('Vulnify SDK', () => {
     await expect(new Vulnify({ apiKey: 'k' }).guard(action, () => 1)).rejects.toThrow('REVIEW');
   });
 
-  it('fails closed by default and open when configured', async () => {
+  it('fails closed by default and does not run the export', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) as never;
-    expect((await new Vulnify({ apiKey: 'k' }).check(action)).decision).toBe('BLOCK');
+    const exportCustomers = jest.fn();
+    const decision = await new Vulnify({ apiKey: 'k' }).check({
+      agent: 'SalesBot',
+      action: 'EXPORT_DATA',
+      resource: 'Customer Database',
+      destination: 'EXTERNAL_EMAIL',
+      recordsAffected: 12000,
+    });
+    expect(decision).toMatchObject({ decision: 'BLOCK', degraded: true, id: null });
+    expect(decision.reasons[0]).toContain('failMode=closed');
+    if (decision.decision === 'ALLOW') exportCustomers();
+    expect(exportCustomers).not.toHaveBeenCalled();
+
     const open = await new Vulnify({ apiKey: 'k', failMode: 'open' }).check(action);
     expect(open).toMatchObject({ decision: 'ALLOW', degraded: true });
   });
