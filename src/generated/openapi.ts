@@ -73,9 +73,300 @@ export interface paths {
         trace?: never;
     };
 }
-export type webhooks = Record<string, never>;
+export interface webhooks {
+    decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decision alert
+         * @description Sent when a live decision is BLOCK, REVIEW, CRITICAL (CRITICAL can be combined with BLOCK or REVIEW). One delivery per endpoint. Sandbox events are not sent.
+         *
+         *     HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON body. */
+                    "Content-Type": "application/json";
+                    /** @description Sender identity. */
+                    "User-Agent": "Vulnify-Webhooks/1.0";
+                    /** @description HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes. */
+                    "X-Vulnify-Signature": string;
+                    /** @description This attempt, starting at 1. The same delivery id is retried with a higher number. */
+                    "X-Vulnify-Attempt": string;
+                    /** @description Primary event type. Same as body.type. */
+                    "X-Vulnify-Event": "BLOCK" | "REVIEW" | "CRITICAL";
+                    /** @description Delivery id. Same as body.id. */
+                    "X-Vulnify-Delivery": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WebhookDecisionDelivery"];
+                };
+            };
+            responses: {
+                /** @description Any 2xx acknowledges the delivery. 408, 429 and 5xx are retried. Any other 4xx stops retries. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    anomaly: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Anomaly alert
+         * @description Sent when a scan opens an anomaly (VOLUME_SPIKE, NEW_ACTION, NEW_EXTERNAL_DEST, RATE_SPIKE). One delivery per endpoint.
+         *
+         *     HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON body. */
+                    "Content-Type": "application/json";
+                    /** @description Sender identity. */
+                    "User-Agent": "Vulnify-Webhooks/1.0";
+                    /** @description HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes. */
+                    "X-Vulnify-Signature": string;
+                    /** @description This attempt, starting at 1. The same delivery id is retried with a higher number. */
+                    "X-Vulnify-Attempt": string;
+                    /** @description Primary event type. Same as body.type. */
+                    "X-Vulnify-Event": "ANOMALY";
+                    /** @description Delivery id. Same as body.id. */
+                    "X-Vulnify-Delivery": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WebhookAnomalyDelivery"];
+                };
+            };
+            responses: {
+                /** @description Any 2xx acknowledges the delivery. 408, 429 and 5xx are retried. Any other 4xx stops retries. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test delivery
+         * @description Sent only when an administrator requests a test event. It is not a security decision.
+         *
+         *     HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description JSON body. */
+                    "Content-Type": "application/json";
+                    /** @description Sender identity. */
+                    "User-Agent": "Vulnify-Webhooks/1.0";
+                    /** @description HMAC-SHA256. The key is the endpoint secret as UTF-8: the whole whsec_ value, prefix included, not base64-decoded. The signed message is the unix timestamp in seconds, a dot, and the raw body (`t.` + raw body). x-vulnify-signature is `t=,v1= `. Reject the delivery when abs(now - t) is greater than 300 seconds. The raw body is canonical JSON (object keys sorted). Verify those exact bytes. */
+                    "X-Vulnify-Signature": string;
+                    /** @description This attempt, starting at 1. The same delivery id is retried with a higher number. */
+                    "X-Vulnify-Attempt": string;
+                    /** @description Primary event type. Same as body.type. */
+                    "X-Vulnify-Event": "TEST";
+                    /** @description Delivery id. Same as body.id. */
+                    "X-Vulnify-Delivery": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WebhookTestDelivery"];
+                };
+            };
+            responses: {
+                /** @description Any 2xx acknowledges the delivery. 408, 429 and 5xx are retried. Any other 4xx stops retries. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export interface components {
-    schemas: never;
+    schemas: {
+        WebhookDecisionData: {
+            /**
+             * Format: uuid
+             * @description Security event id. Same as the envelope eventId.
+             */
+            id: string;
+            /** @description Agent name. */
+            agent: string;
+            /** @enum {string} */
+            action: "READ_DATA" | "WRITE_DATA" | "DELETE_DATA" | "EXPORT_DATA" | "SEND_EMAIL";
+            /** @description Resource name. */
+            resource: string;
+            riskScore: number;
+            /** @enum {string} */
+            riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+            /**
+             * @description Decision recorded on the event. It does not change when a review is resolved.
+             * @enum {string}
+             */
+            decision: "ALLOW" | "REVIEW" | "BLOCK";
+            /**
+             * @description Effective outcome at send time. REVIEW while a review is pending, ALLOW after approval, BLOCK after denial or expiry. Equals decision when the event has no review.
+             * @enum {string}
+             */
+            finalDecision: "ALLOW" | "REVIEW" | "BLOCK";
+        };
+        WebhookAnomalyData: {
+            /**
+             * Format: uuid
+             * @description Anomaly id. Same as the envelope eventId.
+             */
+            id: string;
+            /** @enum {string} */
+            kind: "VOLUME_SPIKE" | "NEW_ACTION" | "NEW_EXTERNAL_DEST" | "RATE_SPIKE";
+            /** @enum {string} */
+            severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+            /** @description English fallback. Render messageCode and messageParams for other languages. */
+            message: string;
+            /** Format: uuid */
+            agentId: string;
+            /** @enum {string} */
+            messageCode: "anomaly.volume_spike" | "anomaly.new_action" | "anomaly.new_external_destination" | "anomaly.rate_spike";
+            /** @description Parameters for messageCode. Values are strings, numbers, or null. */
+            messageParams: {
+                [key: string]: (string | number) | null;
+            };
+        };
+        WebhookTestData: {
+            /** @enum {string} */
+            message: "Test event from Vulnify";
+            /**
+             * Format: uuid
+             * @description Webhook endpoint id.
+             */
+            webhookId: string;
+            /** Format: uuid */
+            organizationId: string;
+        };
+        WebhookDecisionDelivery: {
+            /**
+             * Format: uuid
+             * @description Delivery id. The same value is sent on every retry. Dedupe on it.
+             */
+            id: string;
+            /**
+             * @description Primary type. The first entry of types, and the X-Vulnify-Event header.
+             * @enum {string}
+             */
+            type: "BLOCK" | "REVIEW" | "CRITICAL";
+            /** @description Every decision type this event matched, in this order: BLOCK if the decision is BLOCK, REVIEW if it is REVIEW, CRITICAL if the risk level is CRITICAL. A delivery is one of those, or BLOCK plus CRITICAL, or REVIEW plus CRITICAL. */
+            types: ("BLOCK" | "REVIEW" | "CRITICAL")[];
+            /**
+             * Format: uuid
+             * @description Security event id. Same as data.id.
+             */
+            eventId: string;
+            /** Format: date-time */
+            createdAt: string;
+            data: components["schemas"]["WebhookDecisionData"];
+        };
+        WebhookAnomalyDelivery: {
+            /**
+             * Format: uuid
+             * @description Delivery id. The same value is sent on every retry. Dedupe on it.
+             */
+            id: string;
+            /**
+             * @description Primary type. The first entry of types, and the X-Vulnify-Event header.
+             * @enum {string}
+             */
+            type: "ANOMALY";
+            types: "ANOMALY"[];
+            /**
+             * Format: uuid
+             * @description Anomaly id. Same as data.id.
+             */
+            eventId: string;
+            /** Format: date-time */
+            createdAt: string;
+            data: components["schemas"]["WebhookAnomalyData"];
+        };
+        WebhookTestDelivery: {
+            /**
+             * Format: uuid
+             * @description Delivery id. The same value is sent on every retry. Dedupe on it.
+             */
+            id: string;
+            /**
+             * @description Primary type. The first entry of types, and the X-Vulnify-Event header.
+             * @enum {string}
+             */
+            type: "TEST";
+            types: "TEST"[];
+            /** @description test- followed by the delivery id. */
+            eventId: string;
+            /** Format: date-time */
+            createdAt: string;
+            data: components["schemas"]["WebhookTestData"];
+        };
+        /** @description Body of every webhook the API sends. */
+        WebhookDelivery: components["schemas"]["WebhookDecisionDelivery"] | components["schemas"]["WebhookAnomalyDelivery"] | components["schemas"]["WebhookTestDelivery"];
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -88,7 +379,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again. */
+                /** @description Retries with the same key (per organization and endpoint, 24 hours) return the stored decision instead of deciding again. The replay always includes finalDecision, derived from the stored decision and the current review. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -122,7 +413,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
+            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending) and is always present, including an idempotent replay. quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
             200: {
                 headers: {
                     /** @description Request id for support and log correlation (a caller-sent plain id is kept). */
@@ -145,7 +436,7 @@ export interface operations {
                          */
                         decision: "ALLOW" | "REVIEW" | "BLOCK";
                         /**
-                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry.
+                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry. Always present, including an idempotent replay of a response stored before this field existed: the replay derives it from the stored decision and the current review.
                          * @enum {string}
                          */
                         finalDecision: "ALLOW" | "REVIEW" | "BLOCK";
@@ -299,7 +590,7 @@ export interface operations {
                          */
                         decision: "ALLOW" | "REVIEW" | "BLOCK";
                         /**
-                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry.
+                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry. Always present, including an idempotent replay of a response stored before this field existed: the replay derives it from the stored decision and the current review.
                          * @enum {string}
                          */
                         finalDecision: "ALLOW" | "REVIEW" | "BLOCK";
@@ -412,7 +703,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again. */
+                /** @description Retries with the same key (per organization and endpoint, 24 hours) return the stored decision instead of deciding again. The replay always includes finalDecision, derived from the stored decision and the current review. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -460,7 +751,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
+            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending) and is always present, including an idempotent replay. quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
             200: {
                 headers: {
                     /** @description Request id for support and log correlation (a caller-sent plain id is kept). */
@@ -483,7 +774,7 @@ export interface operations {
                          */
                         decision: "ALLOW" | "REVIEW" | "BLOCK";
                         /**
-                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry.
+                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry. Always present, including an idempotent replay of a response stored before this field existed: the replay derives it from the stored decision and the current review.
                          * @enum {string}
                          */
                         finalDecision: "ALLOW" | "REVIEW" | "BLOCK";
@@ -627,7 +918,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again. */
+                /** @description Retries with the same key (per organization and endpoint, 24 hours) return the stored decision instead of deciding again. The replay always includes finalDecision, derived from the stored decision and the current review. */
                 "Idempotency-Key"?: string;
             };
             path?: never;
@@ -670,7 +961,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
+            /** @description Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending) and is always present, including an idempotent replay. quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys. */
             200: {
                 headers: {
                     /** @description Request id for support and log correlation (a caller-sent plain id is kept). */
@@ -693,7 +984,7 @@ export interface operations {
                          */
                         decision: "ALLOW" | "REVIEW" | "BLOCK";
                         /**
-                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry.
+                         * @description Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry. Always present, including an idempotent replay of a response stored before this field existed: the replay derives it from the stored decision and the current review.
                          * @enum {string}
                          */
                         finalDecision: "ALLOW" | "REVIEW" | "BLOCK";

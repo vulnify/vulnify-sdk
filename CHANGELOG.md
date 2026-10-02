@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- `finalDecision` is required on `check()` and `getEvent()` results. Idempotent replays include it. `guard()` still falls back to `decision` only when a body omits the field.
+- `verifyWebhook()` checks `X-Vulnify-Signature` (`t=<unix seconds>,v1=<64 lowercase hex>`, HMAC-SHA256 over `t.` + the raw body, 300s tolerance) and returns a decision, anomaly, or test payload. Header names are `WEBHOOK_SIGNATURE_HEADER`, `WEBHOOK_ATTEMPT_HEADER`, `WEBHOOK_EVENT_HEADER`, and `WEBHOOK_DELIVERY_HEADER`.
+- `verifyWebhookSignature()` still returns a boolean. It now accepts only the documented header. A value with spaces, uppercase hex, or more than one `v1` signature returns false.
+
 ## 0.2.2
 
 - `check()` and `getEvent()` include optional `finalDecision`: `REVIEW` while a review is pending, `ALLOW` after approval, `BLOCK` after denial or expiry. The stored `decision` does not change. Idempotent replays of older decisions may omit `finalDecision`; obey `finalDecision ?? decision`. `guard()` follows that same rule.

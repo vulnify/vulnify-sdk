@@ -30,8 +30,8 @@ Self-hosted runners cannot use trusted publishing. The workflow uses `ubuntu-lat
    ```bash
    git checkout main
    git pull origin main
-   git tag -a v0.2.2 -m "v0.2.2"
-   git push origin v0.2.2
+   git tag -a v0.2.3 -m "v0.2.3"
+   git push origin v0.2.3
    ```
 
 3. Watch the Release workflow. It publishes `@vulnify/sdk@<version>` and opens the GitHub release for that tag with `sbom.cdx.json` attached. The same file is a workflow artifact named `sbom`.
@@ -49,6 +49,7 @@ Checked on 2 October 2026:
 | 0.1.1 | Published 2026-10-01 from `ccf67f56837508507a46baad74d58e3d2f3f471d`. | Annotated tag `v0.1.1` is on that commit. The release workflow is not in it, so the tag did not publish. |
 | 0.2.0 | Not published. | Annotated tag `v0.2.0` → `99eae03d666e4f3471d7d11a1553caf22d32f4b1`. Leave this tag where it is. Do not delete it, move it, or re-run its workflow. That commit still fails open on some 4xx responses, including 413. |
 | 0.2.1 | Published 2026-10-02 from `41c47503bf0aa2be0e7da518e596e51325e0cf4e`. | Annotated tag `v0.2.1` is on that commit. |
-| 0.2.2 | Not published until the merge commit is tagged. | Tag `v0.2.2` only after `package.json` on `main` is `0.2.2`. |
+| 0.2.2 | Published 2026-10-02 from `e7489396e4062b68ce47af107dacc5f70bef9841`. | Annotated tag `v0.2.2` is on that commit. |
+| 0.2.3 | Not published until the merge commit is tagged. | Tag `v0.2.3` only after `package.json` on `main` is `0.2.3`. |
 
 The `v0.2.0` publish failed because `actions/setup-node` was given `registry-url`. That writes `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` and, with no token configured, sets `NODE_AUTH_TOKEN` to the placeholder `XXXXX-XXXXX-XXXXX-XXXXX`. npm used that placeholder instead of the GitHub OIDC exchange, and the registry answered `E404` for `PUT /@vulnify%2fsdk`. The workflow no longer sets `registry-url`. No `NPM_TOKEN` secret is required.

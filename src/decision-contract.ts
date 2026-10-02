@@ -9,15 +9,13 @@ type Assert<T extends true> = T;
 
 /**
  * Hand-written SDK types must match the generated event body.
- * `finalDecision` stays optional on the SDK. `id`, `riskLevel`, and `riskScore` are nullable
- * only for the fail-closed fallback. `degraded` is SDK-only.
+ * `id`, `riskLevel`, and `riskScore` are nullable only for the fail-closed fallback. `degraded` is SDK-only.
  */
 type SpecEvent = WithoutIndex<PostEvent>;
-type SdkEvent = Omit<VulnifyDecision, 'degraded' | 'id' | 'riskLevel' | 'riskScore' | 'finalDecision'> & {
+type SdkEvent = Omit<VulnifyDecision, 'degraded' | 'id' | 'riskLevel' | 'riskScore'> & {
   id: string;
   riskLevel: RiskLevel;
   riskScore: number;
-  finalDecision: Decision;
 };
 type FieldDiff<K extends keyof SpecEvent & keyof SdkEvent> = Equal<SpecEvent[K], SdkEvent[K]> extends true ? never : K;
 

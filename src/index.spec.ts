@@ -3,7 +3,7 @@ import { Vulnify, VulnifyBlockedError } from './index';
 const action = { agent: 'SalesBot', action: 'EXPORT_DATA', resource: 'Customer Database' } as const;
 const reply = (status: number, body: unknown) =>
   jest.fn().mockResolvedValue({ ok: status < 400, status, json: async () => body });
-const allow = { id: '1', decision: 'ALLOW', evaluatedDecision: 'ALLOW', monitored: false, review: null, riskLevel: 'LOW', riskScore: 5, reasons: [], policy: null, dlpFindings: [], quotaExceeded: false, sandbox: false };
+const allow = { id: '1', decision: 'ALLOW', finalDecision: 'ALLOW', evaluatedDecision: 'ALLOW', monitored: false, review: null, riskLevel: 'LOW', riskScore: 5, reasons: [], policy: null, dlpFindings: [], quotaExceeded: false, sandbox: false };
 
 describe('Vulnify SDK', () => {
   it('defaults baseUrl to the production API', async () => {
@@ -24,7 +24,7 @@ describe('Vulnify SDK', () => {
 
   it('guard() runs the function only when allowed', async () => {
     const v = new Vulnify({ apiKey: 'k' });
-    global.fetch = reply(200, { ...allow, decision: 'BLOCK', riskLevel: 'CRITICAL', reasons: ['External destination'] }) as never;
+    global.fetch = reply(200, { ...allow, decision: 'BLOCK', finalDecision: 'BLOCK', riskLevel: 'CRITICAL', reasons: ['External destination'] }) as never;
     const fn = jest.fn();
     await expect(v.guard(action, fn)).rejects.toBeInstanceOf(VulnifyBlockedError);
     expect(fn).not.toHaveBeenCalled();
@@ -34,7 +34,7 @@ describe('Vulnify SDK', () => {
   });
 
   it('REVIEW is not allowed to proceed', async () => {
-    global.fetch = reply(200, { ...allow, decision: 'REVIEW' }) as never;
+    global.fetch = reply(200, { ...allow, decision: 'REVIEW', finalDecision: 'REVIEW' }) as never;
     await expect(new Vulnify({ apiKey: 'k' }).guard(action, () => 1)).rejects.toThrow('REVIEW');
   });
 
@@ -48,7 +48,7 @@ describe('Vulnify SDK', () => {
       destination: 'EXTERNAL_EMAIL',
       recordsAffected: 12000,
     });
-    expect(decision).toMatchObject({ decision: 'BLOCK', degraded: true, id: null });
+    expect(decision).toMatchObject({ decision: 'BLOCK', finalDecision: 'BLOCK', degraded: true, id: null });
     expect(decision.reasons[0]).toContain('failMode=closed');
     if (decision.decision === 'ALLOW') exportCustomers();
     expect(exportCustomers).not.toHaveBeenCalled();
@@ -117,7 +117,7 @@ describe('Vulnify SDK', () => {
     expect(timedOut.reasons[0]).toContain('408');
   });
 
-  it('returns finalDecision and leaves it absent when the server omits it', async () => {
+  it('returns finalDecision on the decision and on an idempotent replay', async () => {
     global.fetch = reply(200, { ...allow, decision: 'REVIEW', finalDecision: 'ALLOW' }) as never;
     const approved = await new Vulnify({ apiKey: 'k' }).check(action);
     expect(approved.finalDecision).toBe('ALLOW');
@@ -125,8 +125,7 @@ describe('Vulnify SDK', () => {
 
     global.fetch = reply(200, allow) as never;
     const replay = await new Vulnify({ apiKey: 'k' }).check(action);
-    expect(replay.decision).toBe('ALLOW');
-    expect(Object.hasOwn(replay, 'finalDecision')).toBe(false);
+    expect(replay.finalDecision).toBe('ALLOW');
   });
 
   it('guard() obeys finalDecision when a stored REVIEW was later approved or denied', async () => {
@@ -138,7 +137,8 @@ describe('Vulnify SDK', () => {
     await expect(new Vulnify({ apiKey: 'k' }).guard(action, fn)).rejects.toThrow('BLOCK');
     expect(fn).not.toHaveBeenCalled();
 
-    global.fetch = reply(200, { ...allow, decision: 'REVIEW' }) as never;
+    const { finalDecision: _ignored, ...storedOnly } = allow;
+    global.fetch = reply(200, { ...storedOnly, decision: 'REVIEW' }) as never;
     await expect(new Vulnify({ apiKey: 'k' }).guard(action, fn)).rejects.toThrow('REVIEW');
   });
 
@@ -146,8 +146,7 @@ describe('Vulnify SDK', () => {
     const fetchMock = reply(200, { ...allow, id: 'evt_1' });
     global.fetch = fetchMock as never;
     const event = await new Vulnify({ apiKey: 'vln_live_x', baseUrl: 'https://api.vulnify.io' }).getEvent('evt_1');
-    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', degraded: false, quotaExceeded: false, sandbox: false, lgpdCategories: [] });
-    expect(Object.hasOwn(event, 'finalDecision')).toBe(false);
+    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', finalDecision: 'ALLOW', degraded: false, quotaExceeded: false, sandbox: false, lgpdCategories: [] });
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events/evt_1');
     expect(fetchMock.mock.calls[0][1].method ?? 'GET').toBe('GET');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer vln_live_x');
@@ -178,7 +177,7 @@ describe('Vulnify SDK', () => {
   });
 
   describe('review flow', () => {
-    const pending = { ...allow, id: 'r1', decision: 'REVIEW', review: { status: 'PENDING', expiresAt: null, decidedAt: null, note: null } };
+    const pending = { ...allow, id: 'r1', decision: 'REVIEW', finalDecision: 'REVIEW', review: { status: 'PENDING', expiresAt: null, decidedAt: null, note: null } };
     const withStatus = (status: string) => ({ ...pending, review: { ...pending.review, status } });
 
     it('guard() with wait runs fn after approval', async () => {
