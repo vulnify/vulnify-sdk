@@ -30,31 +30,24 @@ Self-hosted runners cannot use trusted publishing. The workflow uses `ubuntu-lat
    ```bash
    git checkout main
    git pull origin main
-   git tag -a v0.2.0 -m "v0.2.0"
-   git push origin v0.2.0
+   git tag -a v0.2.1 -m "v0.2.1"
+   git push origin v0.2.1
    ```
 
 3. Watch the Release workflow. It publishes `@vulnify/sdk@<version>` and opens the GitHub release for that tag with `sbom.cdx.json` attached. The same file is a workflow artifact named `sbom`.
 4. Do not push another tag for a version that is already on npm. npm will reject the publish, and the version cannot be reused.
 
-`v0.2.0` is the first release this workflow should publish. The commands above are the ones to run after this change is on `main`.
+`v0.2.1` is the first version this workflow should publish. `v0.2.0` is already tagged and must stay unpublished. See below.
 
 ## Existing tags and npm history
 
 Checked on 2 October 2026:
 
-| Version | npm publish | npm `gitHead` | Git tag in this repo |
-| --- | --- | --- | --- |
-| 0.1.0 | 2026-09-30 | `9d288394540d55a5ae8e415f25f123437dea68c2` | `v0.1.0` → `f51532db032e46d2f69fe33d6e03c48cb13af494` (`docs: install the SDK from npm`) |
-| 0.1.1 | 2026-10-01 | `ccf67f56837508507a46baad74d58e3d2f3f471d` | no `v0.1.1` tag |
+| Version | npm | Git tag |
+| --- | --- | --- |
+| 0.1.0 | Published 2026-09-30. npm `gitHead` `9d28839` is not in this repo. | `v0.1.0` → `f51532db032e46d2f69fe33d6e03c48cb13af494`. Do not move it. |
+| 0.1.1 | Published 2026-10-01 from `ccf67f56837508507a46baad74d58e3d2f3f471d`. | Annotated tag `v0.1.1` is on that commit. The release workflow is not in it, so the tag did not publish. |
+| 0.2.0 | Not published. | Annotated tag `v0.2.0` → `99eae03d666e4f3471d7d11a1553caf22d32f4b1`. Leave this tag where it is. Do not delete it, move it, or re-run its workflow. That commit still fails open on some 4xx responses, including 413. |
+| 0.2.1 | Not published yet. | Tag `v0.2.1` only after the 4xx fix and the trusted-publishing workflow fix are on `main`. |
 
-`v0.1.1` should be tagged retroactively on `ccf67f56837508507a46baad74d58e3d2f3f471d`. That commit is `Document a production export check in 0.1.1. (#2)`, its `package.json` version is `0.1.1`, and it is the `gitHead` npm recorded for the published 0.1.1 tarball.
-
-```bash
-git tag -a v0.1.1 ccf67f56837508507a46baad74d58e3d2f3f471d -m "v0.1.1"
-git push origin v0.1.1
-```
-
-Push that tag only at that commit. The release workflow file is not in that commit, so GitHub will not run it for `v0.1.1`, and npm will not try to publish 0.1.1 again. Tagging `v0.1.1` on a later commit (where `package.json` is `0.2.0`) would start the workflow and fail the version check.
-
-Do not move `v0.1.0`. The tag already points at `f51532d` in this repository, but the 0.1.0 tarball's `gitHead` (`9d28839`) is not in this history. Retagging would be a force-update of a tag that is already on the remote, and it still could not point at a commit this repo does not contain.
+The `v0.2.0` publish failed because `actions/setup-node` was given `registry-url`. That writes `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` and, with no token configured, sets `NODE_AUTH_TOKEN` to the placeholder `XXXXX-XXXXX-XXXXX-XXXXX`. npm used that placeholder instead of the GitHub OIDC exchange, and the registry answered `E404` for `PUT /@vulnify%2fsdk`. The workflow no longer sets `registry-url`. No `NPM_TOKEN` secret is required.
