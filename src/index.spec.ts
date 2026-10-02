@@ -89,6 +89,19 @@ describe('Vulnify SDK', () => {
     await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).check(action)).rejects.toThrow('rejected (401)');
   });
 
+  it('reads a decision at GET /v1/events/:id with the bearer API key', async () => {
+    const fetchMock = reply(200, { ...allow, id: 'evt_1' });
+    global.fetch = fetchMock as never;
+    const event = await new Vulnify({ apiKey: 'vln_live_x', baseUrl: 'https://api.vulnify.io' }).getEvent('evt_1');
+    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', degraded: false });
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events/evt_1');
+    expect(fetchMock.mock.calls[0][1].method ?? 'GET').toBe('GET');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer vln_live_x');
+
+    global.fetch = reply(401, { message: 'Invalid API key' }) as never;
+    await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).getEvent('evt_1')).rejects.toThrow('rejected (401)');
+  });
+
   describe('review flow', () => {
     const pending = { ...allow, id: 'r1', decision: 'REVIEW', review: { status: 'PENDING', expiresAt: null, decidedAt: null, note: null } };
     const withStatus = (status: string) => ({ ...pending, review: { ...pending.review, status } });
