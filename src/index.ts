@@ -42,10 +42,9 @@ export interface VulnifyDecision {
   /**
    * Effective outcome. REVIEW while a review is pending, ALLOW after approval,
    * BLOCK after denial or expiry. Equals `decision` when there is no review.
-   * Omitted on idempotent replays of decisions stored before this field existed.
-   * When it is absent, obey `decision`.
+   * Present on every current response, including idempotent replays.
    */
-  finalDecision?: Decision;
+  finalDecision: Decision;
   /** What would happen with full enforcement (differs from `decision` in monitor mode). */
   evaluatedDecision: Decision;
   /** True when Vulnify is in monitor mode and the action was recorded but not enforced. */
@@ -68,15 +67,15 @@ export interface VulnifyDecision {
   degraded: boolean;
 }
 
-/** Older servers and old idempotent replays may omit the newer fields. `finalDecision` is left absent. */
-type ServerDecision = Omit<VulnifyDecision, 'degraded' | 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox' | 'finalDecision'> &
-  Partial<Pick<VulnifyDecision, 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox' | 'finalDecision'>>;
+/** Older servers may omit fields added after the first public release. `finalDecision` is required. */
+type ServerDecision = Omit<VulnifyDecision, 'degraded' | 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox'> &
+  Partial<Pick<VulnifyDecision, 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox'>>;
 
 function fromServer(body: ServerDecision): VulnifyDecision {
   return { dlpFindings: [], lgpdCategories: [], quotaExceeded: false, sandbox: false, ...body, degraded: false };
 }
 
-/** Outcome to obey. Falls back to the stored decision when `finalDecision` was not sent. */
+/** Outcome to obey. `finalDecision` is required; `decision` covers a body that breaks that contract. */
 function effectiveDecision(result: Pick<VulnifyDecision, 'decision' | 'finalDecision'>): Decision {
   return result.finalDecision ?? result.decision;
 }
@@ -212,6 +211,7 @@ export class Vulnify {
     return {
       id: null,
       decision: this.failMode === 'open' ? 'ALLOW' : 'BLOCK',
+      finalDecision: this.failMode === 'open' ? 'ALLOW' : 'BLOCK',
       evaluatedDecision: this.failMode === 'open' ? 'ALLOW' : 'BLOCK',
       monitored: false,
       review: null,

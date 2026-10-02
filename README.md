@@ -2,7 +2,7 @@
 
 Runtime authorization for AI agents. Before the agent exports or sends customer records, your app asks Vulnify. The decision is `ALLOW`, `REVIEW`, or `BLOCK`. The score is an integer from 0 to 100 and comes back with reasons.
 
-Vulnify sees action metadata — agent, action, resource, destination, and record count — not the records. In monitor mode the event is stored and not enforced: obey `finalDecision` when it is present, otherwise `decision`. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Idempotent replays of decisions stored before that field existed may omit it. `evaluatedDecision` is what enforcement would have returned, and `monitored` is `true`. `getEvent()` returns the same body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`. If Vulnify cannot be reached, the default is fail-closed.
+Vulnify sees action metadata — agent, action, resource, destination, and record count — not the records. In monitor mode the event is stored and not enforced: obey `finalDecision`. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Current responses always include it, including idempotent replays. `evaluatedDecision` is what enforcement would have returned, and `monitored` is `true`. `getEvent()` returns the same body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`. If Vulnify cannot be reached, the default is fail-closed.
 
 Documentation: https://docs.vulnify.io
 
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     recordsAffected: 12000,
   });
 
-  const outcome = decision.finalDecision ?? decision.decision;
+  const outcome = decision.finalDecision;
 
   if (outcome === 'ALLOW') {
     await exportCustomerRecords();
@@ -89,13 +89,13 @@ A `REVIEW` is approved on the Vulnify server (Slack, an MFA step-up, or a separa
 
 ## Decisions
 
-Obey `finalDecision ?? decision`.
+Obey `finalDecision`.
 
 - `ALLOW` — run the action. `riskScore` is 0–100. `reasons` explains the score.
 - `REVIEW` — do not run the action. `review.status` starts as `PENDING`. Tell the caller a human must approve. `finalDecision` stays `REVIEW` until that review is approved, denied, or expires.
 - `BLOCK` — do not run the action. A denied or expired review keeps the stored `decision` (often `REVIEW`) and sets `finalDecision` to `BLOCK`.
 
-`decision` is what was recorded. It stays put when a human resolves the review. `guard()` uses `finalDecision` when the server sent it, so an approved review runs the function and a denial does not. An old idempotent replay that omits `finalDecision` is treated as its stored `decision`.
+`decision` is what was recorded. It stays put when a human resolves the review. `guard()` follows `finalDecision`, so an approved review runs the function and a denial does not.
 
 Follow that same outcome in monitor mode. An invalid API key, an unknown agent or resource, or a rejected payload throws. That includes every 4xx except 408 and 429, such as 413 when the body is over the API limit. `failMode: 'open'` does not swallow those errors.
 
@@ -107,7 +107,40 @@ Optional `content` is scanned for sensitive data and is not stored. Matches retu
 
 Audit events are hash-chained. SIEM export is JSON or CEF. Evidence in the product maps to LGPD, ISO/IEC 42001, NIST AI RMF, and the EU AI Act. That mapping is not a certification.
 
-Adapters in `src/adapters.ts` wrap LangChain, MCP, OpenAI Agents, and Vercel AI SDK tools without taking those packages as dependencies. `verifyWebhookSignature()` checks webhook deliveries. Longer samples are in `examples/`.
+Adapters in `src/adapters.ts` wrap LangChain, MCP, OpenAI Agents, and Vercel AI SDK tools without taking those packages as dependencies. Longer samples are in `examples/`.
+
+## Webhooks
+
+`verifyWebhook()` checks `X-Vulnify-Signature` and returns the delivery. The signature is `t=<unix seconds>,v1=<64 lowercase hex>`. The MAC is HMAC-SHA256 of `t.` plus the raw body, keyed with the endpoint secret as UTF-8 (the whole `whsec_` value, not base64-decoded). The default clock tolerance is 300 seconds. `verifyWebhookSignature()` is the same check as a boolean and does not parse the body.
+
+The body must be the exact bytes Vulnify sent. Canonical JSON has sorted keys. Parsing the body and stringifying it again changes those bytes and the signature will not match. Read the raw body first, then call `verifyWebhook`.
+
+```ts
+import { WebhookVerificationError, verifyWebhook } from '@vulnify/sdk';
+import type { IncomingMessage, ServerResponse } from 'http';
+
+export function handleVulnifyWebhook(req: IncomingMessage, res: ServerResponse, rawBody: Buffer): void {
+  try {
+    const event = verifyWebhook(process.env.VULNIFY_WEBHOOK_SECRET ?? '', rawBody, req.headers);
+    if (event.type === 'BLOCK' || event.type === 'REVIEW' || event.type === 'CRITICAL') {
+      console.log(event.data.finalDecision, event.eventId);
+    }
+    res.writeHead(204);
+    res.end();
+  } catch (err) {
+    if (err instanceof WebhookVerificationError) {
+      res.writeHead(400);
+      res.end(err.message);
+      return;
+    }
+    throw err;
+  }
+}
+```
+
+With Express, mount `express.raw({ type: 'application/json' })` on this route so `req.body` is a `Buffer`. Do not use `express.json()` on the same route: it parses the body before your handler runs, and the signature is over the original bytes.
+
+`X-Vulnify-Event` matches `type`. `X-Vulnify-Delivery` matches `id` (the delivery id; dedupe retries on it). `X-Vulnify-Attempt` starts at 1. A decision delivery is `BLOCK`, `REVIEW`, or `CRITICAL` (`CRITICAL` can be combined with `BLOCK` or `REVIEW` in `types`). Anomaly deliveries use `ANOMALY`. A test delivery uses `TEST` and is not a security decision.
 
 ## Development
 

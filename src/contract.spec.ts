@@ -8,9 +8,13 @@ describe('committed OpenAPI snapshot', () => {
     expect(get).toEqual(post);
   });
 
-  it('requires finalDecision on a current decision and does not document webhooks', () => {
+  it('requires finalDecision and documents decision, anomaly, and test webhooks', () => {
     expect(post.properties.finalDecision.enum).toEqual(['ALLOW', 'REVIEW', 'BLOCK']);
     expect(post.required).toEqual(expect.arrayContaining(['finalDecision', 'quotaExceeded', 'sandbox', 'lgpdCategories']));
-    expect(spec).not.toHaveProperty('webhooks');
+    expect(Object.keys(spec.webhooks).sort()).toEqual(['anomaly', 'decision', 'test']);
+    const signature = spec.webhooks.decision.post.parameters.find((parameter) => parameter.name === 'X-Vulnify-Signature');
+    expect(signature.schema.pattern).toBe('^t=[0-9]+,v1=[0-9a-f]{64}$');
+    expect(spec.components.schemas.WebhookDecisionData.required).toEqual(expect.arrayContaining(['decision', 'finalDecision']));
+    expect(spec.components.schemas.WebhookDecisionDelivery.required).toContain('eventId');
   });
 });
