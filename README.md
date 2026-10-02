@@ -4,6 +4,8 @@ Runtime authorization for AI agents. Before the agent exports or sends customer 
 
 Vulnify sees action metadata — agent, action, resource, destination, and record count — not the records. In monitor mode the event is stored and not enforced: obey `decision`. `evaluatedDecision` is what enforcement would have returned, and `monitored` is `true`. If Vulnify cannot be reached, the default is fail-closed.
 
+Documentation: https://docs.vulnify.io
+
 Production API: https://api.vulnify.io
 
 ## Install
@@ -12,18 +14,18 @@ Production API: https://api.vulnify.io
 npm install @vulnify/sdk
 ```
 
-Node.js 18 or newer.
+Node.js 18 or newer. Full documentation: https://docs.vulnify.io
 
-## Production scenario
+## Quickstart
 
-An agent is about to export customer records to an external destination. Call `check()` first.
+An agent is about to export customer records to an external destination. Call `check()` first. The client uses `https://api.vulnify.io` unless you pass `baseUrl`.
 
 - `ALLOW` runs the export.
 - `REVIEW` stops and tells the caller a human must approve. The export does not run.
 - `BLOCK` does not run the export.
 - If Vulnify cannot be reached, `check()` returns `BLOCK` with `degraded: true`. The export does not run.
 
-Set `VULNIFY_API_KEY`. `VULNIFY_BASE_URL` overrides the host; when it is unset this example uses `https://api.vulnify.io`. Omitting `baseUrl` in the constructor falls back to `http://localhost:3000`.
+Set `VULNIFY_API_KEY`. Set `VULNIFY_BASE_URL` only when the client should talk to a host other than `https://api.vulnify.io`.
 
 ```ts
 import { Vulnify } from '@vulnify/sdk';
@@ -35,7 +37,7 @@ if (!apiKey) {
 
 const vulnify = new Vulnify({
   apiKey,
-  baseUrl: process.env.VULNIFY_BASE_URL ?? 'https://api.vulnify.io',
+  baseUrl: process.env.VULNIFY_BASE_URL,
 });
 
 /** Replace the body with the real export. It runs only after ALLOW. */
@@ -107,6 +109,7 @@ Adapters in `src/adapters.ts` wrap LangChain, MCP, OpenAI Agents, and Vercel AI 
 npm install
 npm test
 npm run build
+npm run check:package
 ```
 
 ## License

@@ -6,6 +6,13 @@ const reply = (status: number, body: unknown) =>
 const allow = { id: '1', decision: 'ALLOW', evaluatedDecision: 'ALLOW', monitored: false, review: null, riskLevel: 'LOW', riskScore: 5, reasons: [], policy: null, dlpFindings: [], quotaExceeded: false, sandbox: false };
 
 describe('Vulnify SDK', () => {
+  it('defaults baseUrl to the production API', async () => {
+    const fetchMock = reply(200, allow);
+    global.fetch = fetchMock as never;
+    await new Vulnify({ apiKey: 'k' }).check(action);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events');
+  });
+
   it('sends the API key and returns the decision', async () => {
     const fetchMock = reply(200, allow);
     global.fetch = fetchMock as never;
@@ -80,6 +87,19 @@ describe('Vulnify SDK', () => {
     expect((await new Vulnify({ apiKey: 'k', failMode: 'open' }).check(action)).degraded).toBe(true);
     global.fetch = reply(401, { message: 'Invalid API key' }) as never;
     await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).check(action)).rejects.toThrow('rejected (401)');
+  });
+
+  it('reads a decision at GET /v1/events/:id with the bearer API key', async () => {
+    const fetchMock = reply(200, { ...allow, id: 'evt_1' });
+    global.fetch = fetchMock as never;
+    const event = await new Vulnify({ apiKey: 'vln_live_x', baseUrl: 'https://api.vulnify.io' }).getEvent('evt_1');
+    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', degraded: false });
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events/evt_1');
+    expect(fetchMock.mock.calls[0][1].method ?? 'GET').toBe('GET');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer vln_live_x');
+
+    global.fetch = reply(401, { message: 'Invalid API key' }) as never;
+    await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).getEvent('evt_1')).rejects.toThrow('rejected (401)');
   });
 
   describe('review flow', () => {
