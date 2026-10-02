@@ -91,13 +91,13 @@ A `REVIEW` is approved on the Vulnify server (Slack, an MFA step-up, or a separa
 - `REVIEW` — do not run the action. `review.status` starts as `PENDING`. Tell the caller a human must approve.
 - `BLOCK` — do not run the action.
 
-Follow `decision` in monitor mode as well. An invalid API key, an unknown agent or resource, or a rejected payload throws. `failMode: 'open'` does not swallow those errors.
+Follow `decision` in monitor mode as well. An invalid API key, an unknown agent or resource, or a rejected payload throws. That includes every 4xx except 408 and 429, such as 413 when the body is over the API limit. `failMode: 'open'` does not swallow those errors.
 
 Optional `content` is scanned for sensitive data and is not stored. Matches return on `dlpFindings`.
 
 ## Fail-closed
 
-`failMode` defaults to `'closed'`. A timeout or a network error becomes `decision: 'BLOCK'`, `degraded: true`, and a reason beginning with `Vulnify unavailable`. The scenario above does not call `exportCustomerRecords()`. Set `failMode: 'open'` only when an outage should let the action through.
+`failMode` defaults to `'closed'`. A timeout, a network error, or a transient response (408, 429, or 5xx) becomes `decision: 'BLOCK'`, `degraded: true`, and a reason beginning with `Vulnify unavailable`. The scenario above does not call `exportCustomerRecords()`. Set `failMode: 'open'` only when an outage should let the action through. A rejected request (any other 4xx) throws instead, so an unevaluated action is not allowed.
 
 Audit events are hash-chained. SIEM export is JSON or CEF. Evidence in the product maps to LGPD, ISO/IEC 42001, NIST AI RMF, and the EU AI Act. That mapping is not a certification.
 
