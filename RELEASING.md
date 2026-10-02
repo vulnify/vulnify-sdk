@@ -51,6 +51,7 @@ Checked on 2 October 2026:
 | 0.2.1 | Published 2026-10-02 from `41c47503bf0aa2be0e7da518e596e51325e0cf4e`. | Annotated tag `v0.2.1` is on that commit. |
 | 0.2.2 | Published 2026-10-02 from `e7489396e4062b68ce47af107dacc5f70bef9841`. | Annotated tag `v0.2.2` is on that commit. |
 | 0.2.3 | Published 2026-10-02 from `7bf25f9bac24d01bb55449f67601fd6d78fa4094`. | Annotated tag `v0.2.3` is on that commit. |
-| 0.2.4 | Not published until the merge commit is tagged. | Tag `v0.2.4` only after `package.json` on `main` is `0.2.4`. |
+| 0.2.4 | Published from tag `v0.2.4`. | Annotated tag `v0.2.4` → `4731a216fdc469dcabcfc50759bad70d86dc7c61`. |
+| 0.3.0 | Published by tagging the merge commit that sets `package.json` to `0.3.0`. | Tag `v0.3.0` only after that commit is on `main`. The release workflow publishes the `vulnify` bin with provenance. |
 
 The `v0.2.0` publish failed because `actions/setup-node` was given `registry-url`. That writes `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` and, with no token configured, sets `NODE_AUTH_TOKEN` to the placeholder `XXXXX-XXXXX-XXXXX-XXXXX`. npm used that placeholder instead of the GitHub OIDC exchange, and the registry answered `E404` for `PUT /@vulnify%2fsdk`. The workflow no longer sets `registry-url`. No `NPM_TOKEN` secret is required.
