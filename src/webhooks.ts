@@ -87,7 +87,7 @@ export interface WebhookTestPayload {
   id: string;
   type: 'TEST';
   types: 'TEST'[];
-  /** `test-` followed by the delivery id. */
+  /** Starts with `test-`. The API sends `test-` plus a uuid; that uuid is not the delivery id. */
   eventId: string;
   createdAt: string;
   data: WebhookTestData;
@@ -153,6 +153,9 @@ export function verifyWebhook(
     throw new WebhookVerificationError('Webhook body is not JSON');
   }
   if (!isWebhookPayload(parsed)) throw new WebhookVerificationError('Webhook body does not match a documented event');
+  if (parsed.type === 'TEST' && !parsed.eventId.startsWith('test-')) {
+    throw new WebhookVerificationError('TEST webhook eventId must start with "test-"');
+  }
 
   if (headersOrSignature && typeof headersOrSignature !== 'string') {
     const event = headerValue(headersOrSignature, WEBHOOK_EVENT_HEADER);

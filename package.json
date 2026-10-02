@@ -1,6 +1,6 @@
 {
   "name": "@vulnify/sdk",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Vulnify SDK: ask Vulnify whether an AI agent action is allowed before running it.",
   "keywords": [
     "vulnify",
