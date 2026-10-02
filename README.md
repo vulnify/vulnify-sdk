@@ -2,7 +2,7 @@
 
 Runtime authorization for AI agents. Before the agent exports or sends customer records, your app asks Vulnify. The decision is `ALLOW`, `REVIEW`, or `BLOCK`. The score is an integer from 0 to 100 and comes back with reasons.
 
-Vulnify sees action metadata — agent, action, resource, destination, and record count — not the records. In monitor mode the event is stored and not enforced: obey `decision`. `evaluatedDecision` is what enforcement would have returned, and `monitored` is `true`. If Vulnify cannot be reached, the default is fail-closed.
+Vulnify sees action metadata — agent, action, resource, destination, and record count — not the records. In monitor mode the event is stored and not enforced: obey `finalDecision` when it is present, otherwise `decision`. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Idempotent replays of decisions stored before that field existed may omit it. `evaluatedDecision` is what enforcement would have returned, and `monitored` is `true`. `getEvent()` returns the same body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`. If Vulnify cannot be reached, the default is fail-closed.
 
 Documentation: https://docs.vulnify.io
 
@@ -54,14 +54,16 @@ async function main(): Promise<void> {
     recordsAffected: 12000,
   });
 
-  if (decision.decision === 'ALLOW') {
+  const outcome = decision.finalDecision ?? decision.decision;
+
+  if (outcome === 'ALLOW') {
     await exportCustomerRecords();
     return;
   }
 
   const reasons = decision.reasons.join('; ') || 'no reason given';
 
-  if (decision.decision === 'REVIEW') {
+  if (outcome === 'REVIEW') {
     const score = decision.riskScore == null ? 'unknown' : String(decision.riskScore);
     throw new Error(
       `A human must approve this export before it runs (event ${decision.id ?? 'none'}, score ${score}). ${reasons}`,
@@ -87,11 +89,15 @@ A `REVIEW` is approved on the Vulnify server (Slack, an MFA step-up, or a separa
 
 ## Decisions
 
-- `ALLOW` — run the action. `riskScore` is 0–100. `reasons` explains the score.
-- `REVIEW` — do not run the action. `review.status` starts as `PENDING`. Tell the caller a human must approve.
-- `BLOCK` — do not run the action.
+Obey `finalDecision ?? decision`.
 
-Follow `decision` in monitor mode as well. An invalid API key, an unknown agent or resource, or a rejected payload throws. That includes every 4xx except 408 and 429, such as 413 when the body is over the API limit. `failMode: 'open'` does not swallow those errors.
+- `ALLOW` — run the action. `riskScore` is 0–100. `reasons` explains the score.
+- `REVIEW` — do not run the action. `review.status` starts as `PENDING`. Tell the caller a human must approve. `finalDecision` stays `REVIEW` until that review is approved, denied, or expires.
+- `BLOCK` — do not run the action. A denied or expired review keeps the stored `decision` (often `REVIEW`) and sets `finalDecision` to `BLOCK`.
+
+`decision` is what was recorded. It stays put when a human resolves the review. `guard()` uses `finalDecision` when the server sent it, so an approved review runs the function and a denial does not. An old idempotent replay that omits `finalDecision` is treated as its stored `decision`.
+
+Follow that same outcome in monitor mode. An invalid API key, an unknown agent or resource, or a rejected payload throws. That includes every 4xx except 408 and 429, such as 413 when the body is over the API limit. `failMode: 'open'` does not swallow those errors.
 
 Optional `content` is scanned for sensitive data and is not stored. Matches return on `dlpFindings`.
 

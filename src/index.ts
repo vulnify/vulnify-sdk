@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 
 export type Decision = 'ALLOW' | 'REVIEW' | 'BLOCK';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type LgpdCategory = 'IDENTIFICATION' | 'CONTACT' | 'LOCATION' | 'FINANCIAL' | 'HEALTH' | 'COMPANY' | 'CREDENTIALS';
 
 export interface AgentAction {
   /** Agent name as registered in Vulnify (or use agentId). */
@@ -33,13 +34,23 @@ export interface ReviewInfo {
 
 export interface VulnifyDecision {
   id: string | null;
-  /** What you must obey. In monitor mode this is ALLOW even when evaluatedDecision is BLOCK. */
+  /**
+   * Outcome recorded on the event. It does not change when a review is resolved.
+   * In monitor mode this is ALLOW even when evaluatedDecision is BLOCK.
+   */
   decision: Decision;
+  /**
+   * Effective outcome. REVIEW while a review is pending, ALLOW after approval,
+   * BLOCK after denial or expiry. Equals `decision` when there is no review.
+   * Omitted on idempotent replays of decisions stored before this field existed.
+   * When it is absent, obey `decision`.
+   */
+  finalDecision?: Decision;
   /** What would happen with full enforcement (differs from `decision` in monitor mode). */
   evaluatedDecision: Decision;
   /** True when Vulnify is in monitor mode and the action was recorded but not enforced. */
   monitored: boolean;
-  /** Present when decision is REVIEW: a human must approve. */
+  /** Present when the event has a human review. */
   review: ReviewInfo | null;
   riskLevel: RiskLevel | null;
   riskScore: number | null;
@@ -47,8 +58,8 @@ export interface VulnifyDecision {
   policy: { id: string; name: string } | null;
   /** Sensitive data types found in `content` (the content itself is never stored). */
   dlpFindings: string[];
-  /** LGPD data categories of the findings (IDENTIFICATION, CONTACT, LOCATION, FINANCIAL, HEALTH, COMPANY, CREDENTIALS). */
-  lgpdCategories: string[];
+  /** LGPD data categories of the findings. */
+  lgpdCategories: LgpdCategory[];
   /** True when the organization is over its plan quota (decisions are still made). */
   quotaExceeded: boolean;
   /** True when the API key is a TEST key: the event is a sandbox event. */
@@ -57,9 +68,18 @@ export interface VulnifyDecision {
   degraded: boolean;
 }
 
-/** Older servers may omit the newer fields; defaults are filled in by the SDK. */
-type ServerDecision = Omit<VulnifyDecision, 'degraded' | 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox'> &
-  Partial<Pick<VulnifyDecision, 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox'>>;
+/** Older servers and old idempotent replays may omit the newer fields. `finalDecision` is left absent. */
+type ServerDecision = Omit<VulnifyDecision, 'degraded' | 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox' | 'finalDecision'> &
+  Partial<Pick<VulnifyDecision, 'dlpFindings' | 'lgpdCategories' | 'quotaExceeded' | 'sandbox' | 'finalDecision'>>;
+
+function fromServer(body: ServerDecision): VulnifyDecision {
+  return { dlpFindings: [], lgpdCategories: [], quotaExceeded: false, sandbox: false, ...body, degraded: false };
+}
+
+/** Outcome to obey. Falls back to the stored decision when `finalDecision` was not sent. */
+function effectiveDecision(result: Pick<VulnifyDecision, 'decision' | 'finalDecision'>): Decision {
+  return result.finalDecision ?? result.decision;
+}
 
 export interface VulnifyOptions {
   apiKey: string;
@@ -88,7 +108,8 @@ export type ReviewOutcome = ReviewStatus | 'TIMEOUT';
 
 export class VulnifyBlockedError extends Error {
   constructor(public readonly result: VulnifyDecision) {
-    super(`Vulnify ${result.decision}: ${result.reasons.join('; ') || 'no reason given'}`);
+    const outcome = result.finalDecision ?? result.decision;
+    super(`Vulnify ${outcome}: ${result.reasons.join('; ') || 'no reason given'}`);
     this.name = 'VulnifyBlockedError';
   }
 }
@@ -137,8 +158,7 @@ export class Vulnify {
           lastError = `Vulnify responded ${res.status}`;
           continue;
         }
-        const body = (await res.json()) as ServerDecision;
-        return { dlpFindings: [], lgpdCategories: [], quotaExceeded: false, sandbox: false, ...body, degraded: false };
+        return fromServer((await res.json()) as ServerDecision);
       } catch (err) {
         if (err instanceof VulnifyRequestError) throw err;
         lastError = err instanceof Error ? err.message : 'network error';
@@ -156,7 +176,7 @@ export class Vulnify {
       signal: AbortSignal.timeout(this.timeoutMs),
     });
     if (!res.ok) throw new VulnifyRequestError(`Vulnify request rejected (${res.status})`);
-    return { dlpFindings: [], lgpdCategories: [], quotaExceeded: false, sandbox: false, ...((await res.json()) as ServerDecision), degraded: false };
+    return fromServer((await res.json()) as ServerDecision);
   }
 
   /** Polls until a human approves or denies the review, it expires, or the timeout elapses. */
@@ -178,8 +198,9 @@ export class Vulnify {
    */
   async guard<T>(action: AgentAction, fn: () => Promise<T> | T, wait?: WaitForReviewOptions): Promise<T> {
     const result = await this.check(action);
-    if (result.decision === 'ALLOW') return fn();
-    if (result.decision === 'REVIEW' && wait && result.id) {
+    const outcome = effectiveDecision(result);
+    if (outcome === 'ALLOW') return fn();
+    if (outcome === 'REVIEW' && wait && result.id) {
       const outcome = await this.waitForReview(result.id, wait);
       if (outcome === 'APPROVED') return fn();
       throw new VulnifyBlockedError({ ...result, reasons: [...result.reasons, `Review ${outcome.toLowerCase()}`] });
