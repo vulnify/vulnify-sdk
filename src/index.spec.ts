@@ -6,6 +6,13 @@ const reply = (status: number, body: unknown) =>
 const allow = { id: '1', decision: 'ALLOW', evaluatedDecision: 'ALLOW', monitored: false, review: null, riskLevel: 'LOW', riskScore: 5, reasons: [], policy: null, dlpFindings: [], quotaExceeded: false, sandbox: false };
 
 describe('Vulnify SDK', () => {
+  it('defaults baseUrl to the production API', async () => {
+    const fetchMock = reply(200, allow);
+    global.fetch = fetchMock as never;
+    await new Vulnify({ apiKey: 'k' }).check(action);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events');
+  });
+
   it('sends the API key and returns the decision', async () => {
     const fetchMock = reply(200, allow);
     global.fetch = fetchMock as never;

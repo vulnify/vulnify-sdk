@@ -5,7 +5,11 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { guardAiSdkTools, Vulnify } from '@vulnify/sdk';
 
-const vulnify = new Vulnify({ apiKey: process.env.VULNIFY_API_KEY!, baseUrl: process.env.VULNIFY_URL });
+// baseUrl defaults to https://api.vulnify.io. Set VULNIFY_BASE_URL to override it.
+const vulnify = new Vulnify({
+  apiKey: process.env.VULNIFY_API_KEY!,
+  baseUrl: process.env.VULNIFY_BASE_URL,
+});
 
 const tools = guardAiSdkTools(
   vulnify,

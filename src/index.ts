@@ -63,7 +63,7 @@ type ServerDecision = Omit<VulnifyDecision, 'degraded' | 'dlpFindings' | 'lgpdCa
 
 export interface VulnifyOptions {
   apiKey: string;
-  /** Defaults to http://localhost:3000 */
+  /** Defaults to https://api.vulnify.io. Pass another URL for local development or a private deployment. */
   baseUrl?: string;
   /** Request timeout in ms (default 3000). */
   timeoutMs?: number;
@@ -102,7 +102,7 @@ export class Vulnify {
 
   constructor(private readonly options: VulnifyOptions) {
     if (!options.apiKey) throw new Error('Vulnify: apiKey is required');
-    this.baseUrl = (options.baseUrl ?? 'http://localhost:3000').replace(/\/$/, '');
+    this.baseUrl = (options.baseUrl ?? 'https://api.vulnify.io').replace(/\/$/, '');
     this.timeoutMs = options.timeoutMs ?? 3000;
     this.failMode = options.failMode ?? 'closed';
     this.retries = options.retries ?? 2;
