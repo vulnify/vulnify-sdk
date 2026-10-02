@@ -89,6 +89,34 @@ describe('Vulnify SDK', () => {
     await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).check(action)).rejects.toThrow('rejected (401)');
   });
 
+  it('rejects client errors even when failMode is open, and does not retry them', async () => {
+    for (const status of [400, 403, 404, 409, 413, 422]) {
+      const fetchMock = reply(status, { message: `rejected ${status}` });
+      global.fetch = fetchMock as never;
+      await expect(new Vulnify({ apiKey: 'k', failMode: 'open', retries: 2 }).check(action)).rejects.toThrow(`rejected (${status})`);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('does not fail open on 413 when the body is over the API limit', async () => {
+    const fetchMock = reply(413, { message: 'request entity too large' });
+    global.fetch = fetchMock as never;
+    await expect(new Vulnify({ apiKey: 'k', failMode: 'open' }).check(action)).rejects.toThrow('rejected (413)');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats 408 and 429 as transient and then follows failMode', async () => {
+    global.fetch = reply(429, { message: 'slow down' }) as never;
+    const limited = await new Vulnify({ apiKey: 'k', failMode: 'open', retries: 1 }).check(action);
+    expect(limited).toMatchObject({ decision: 'ALLOW', degraded: true });
+    expect(limited.reasons[0]).toContain('429');
+
+    global.fetch = reply(408, {}) as never;
+    const timedOut = await new Vulnify({ apiKey: 'k', failMode: 'closed', retries: 0 }).check(action);
+    expect(timedOut).toMatchObject({ decision: 'BLOCK', degraded: true });
+    expect(timedOut.reasons[0]).toContain('408');
+  });
+
   it('reads a decision at GET /v1/events/:id with the bearer API key', async () => {
     const fetchMock = reply(200, { ...allow, id: 'evt_1' });
     global.fetch = fetchMock as never;

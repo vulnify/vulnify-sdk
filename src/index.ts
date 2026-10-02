@@ -68,8 +68,9 @@ export interface VulnifyOptions {
   /** Request timeout in ms (default 3000). */
   timeoutMs?: number;
   /**
-   * What to do when Vulnify is unreachable or times out.
+   * What to do when Vulnify is unreachable or returns a transient status (408, 429, or 5xx).
    * 'closed' (default) blocks the action; 'open' allows it.
+   * Any other 4xx is a rejected request and throws. failMode does not apply to it.
    */
   failMode?: 'open' | 'closed';
   /** Network retries with the same Idempotency-Key (default 2). Retries never create duplicate events. */
@@ -108,7 +109,11 @@ export class Vulnify {
     this.retries = options.retries ?? 2;
   }
 
-  /** Asks Vulnify for a decision. Network problems never throw; see failMode. */
+  /**
+   * Asks Vulnify for a decision.
+   * Network errors, timeouts, 408, 429, and 5xx follow failMode and do not throw.
+   * Any other 4xx throws. failMode never turns a rejected request into a decision.
+   */
   async check(action: AgentAction, options: CheckOptions = {}): Promise<VulnifyDecision> {
     const idempotencyKey = options.idempotencyKey ?? randomUUID();
     let lastError = 'network error';
@@ -122,8 +127,9 @@ export class Vulnify {
           body: JSON.stringify(action),
           signal: controller.signal,
         });
-        if (res.status === 401 || res.status === 400 || res.status === 403 || res.status === 404) {
-          // Configuration errors must be loud, never silently "fail open".
+        // 408 and 429 are transient. Every other 4xx rejected the request, so retrying or
+        // failing open would let an action through that Vulnify never evaluated.
+        if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
           const body = await res.json().catch(() => ({}));
           throw new VulnifyRequestError(`Vulnify request rejected (${res.status}): ${JSON.stringify(body.message ?? body)}`);
         }

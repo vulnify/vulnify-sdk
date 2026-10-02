@@ -1,6 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Client errors (4xx other than 408 and 429) throw, including 413 when the body is over the API limit. `failMode: 'open'` no longer returns a degraded `ALLOW` for a request Vulnify rejected without evaluating. 408, 429, 5xx, timeouts, and network errors still follow `failMode`.
+- The release workflow no longer asks `actions/setup-node` for a registry auth token, so npm trusted publishing can use GitHub OIDC. `0.2.0` was not published; this is the first release that includes the 4xx fix.
+
 ## 0.2.0
+
+Not published. Tag `v0.2.0` points at this changelog, and that commit still treats some 4xx responses as outages. Do not publish it. Release `0.2.1` instead.
 
 - The default `baseUrl` is `https://api.vulnify.io`. Pass `baseUrl` to use another host, including local development.
 - Ship ESM and CommonJS builds. The `exports` map resolves `types`, `import`, and `require` to the matching files.
