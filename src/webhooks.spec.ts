@@ -117,6 +117,20 @@ describe('verifyWebhook', () => {
     expect(() => verifyWebhook(secret, body, sign(secret, t + 301, body), { now })).toThrow('future');
   });
 
+  it('requires a test- prefix on TEST eventId and ignores that rule for other events', () => {
+    const prefixed = { ...testEvent, eventId: 'test-not-the-delivery-id' };
+    const prefixedBody = JSON.stringify(prefixed);
+    expect(verifyWebhook(secret, prefixedBody, sign(secret, t, prefixedBody), { now }).eventId).toBe('test-not-the-delivery-id');
+
+    const bare = { ...testEvent, eventId: '66666666-6666-4666-8666-666666666666' };
+    const bareBody = JSON.stringify(bare);
+    expect(() => verifyWebhook(secret, bareBody, sign(secret, t, bareBody), { now })).toThrow(WebhookVerificationError);
+    expect(() => verifyWebhook(secret, bareBody, sign(secret, t, bareBody), { now })).toThrow('must start with "test-"');
+
+    const decisionBody = JSON.stringify(decision);
+    expect(verifyWebhook(secret, decisionBody, sign(secret, t, decisionBody), { now }).eventId).toBe(decision.eventId);
+  });
+
   it('rejects a missing or malformed signature and a header that disagrees with the body', () => {
     const body = JSON.stringify(decision);
     const signature = sign(secret, t, body);

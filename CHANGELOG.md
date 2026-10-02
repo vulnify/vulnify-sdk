@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- `verifyWebhook()` rejects a TEST delivery whose `eventId` does not start with `test-`. Any `test-` prefix is accepted. Decision and anomaly deliveries are unchanged.
+
 ## 0.2.3
 
 - `finalDecision` is required on `check()` and `getEvent()` results. Idempotent replays include it. `guard()` still falls back to `decision` only when a body omits the field.
