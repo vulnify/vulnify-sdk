@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Add the `vulnify` CLI (`npx -p @vulnify/sdk vulnify`): `init`, `login`, `check`, `policies validate`, `policies pull`, `policies apply`, and `test`. `--json` is available on every command. Exit codes are 0 (ok or ALLOW), 1 (validation or test failure), 2 (REVIEW), 3 (BLOCK), 4 (the server has no policies-as-code API), and 5 (auth).
+- `schema/policies.v1.json` is the policies-as-code contract, included in the package and exported at `@vulnify/sdk/schema/policies.v1.json`. Conditions use the policy engine (`minRecords`, `maxRecords`, `minRiskScore`, `destination`, `destinationContains`, `containsSensitiveData`, `outsideBusinessHours`, `agentIds`, `allOf`, `anyOf`). `spec.action` is the action family. A comparison object such as `recordsAffected: { gt: 1000 }` is rejected.
+- `policies pull`, `policies apply`, and `test` print `This Vulnify server does not support policies as code yet` and exit 4 when the server responds 404.
+
 ## 0.2.4
 
 - `verifyWebhook()` rejects a TEST delivery whose `eventId` does not start with `test-`. Any `test-` prefix is accepted. Decision and anomaly deliveries are unchanged.

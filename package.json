@@ -1,14 +1,15 @@
 {
   "name": "@vulnify/sdk",
-  "version": "0.2.4",
-  "description": "Vulnify SDK: ask Vulnify whether an AI agent action is allowed before running it.",
+  "version": "0.3.0",
+  "description": "Vulnify SDK and CLI: ask whether an AI agent action is allowed before it runs, and manage policies as code.",
   "keywords": [
     "vulnify",
     "sdk",
     "authorization",
     "security",
     "ai-agents",
-    "runtime-authorization"
+    "runtime-authorization",
+    "cli"
   ],
   "homepage": "https://docs.vulnify.io",
   "bugs": {
@@ -21,8 +22,12 @@
   },
   "files": [
     "dist",
+    "schema",
     "CHANGELOG.md"
   ],
+  "bin": {
+    "vulnify": "./dist/cli.js"
+  },
   "sideEffects": false,
   "type": "commonjs",
   "main": "./dist/index.js",
@@ -38,7 +43,8 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
-    }
+    },
+    "./schema/policies.v1.json": "./schema/policies.v1.json"
   },
   "publishConfig": {
     "access": "public"
@@ -54,6 +60,10 @@
     "check:package": "publint && attw --pack . && node scripts/verify-package.mjs",
     "generate:api": "openapi-typescript spec/openapi.json -o src/generated/openapi.ts",
     "check:api": "node scripts/check-openapi.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",

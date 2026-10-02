@@ -142,6 +142,24 @@ With Express, mount `express.raw({ type: 'application/json' })` on this route so
 
 `X-Vulnify-Event` matches `type`. `X-Vulnify-Delivery` matches `id` (the delivery id; dedupe retries on it). `X-Vulnify-Attempt` starts at 1. A decision delivery is `BLOCK`, `REVIEW`, or `CRITICAL` (`CRITICAL` can be combined with `BLOCK` or `REVIEW` in `types`). Anomaly deliveries use `ANOMALY`. A test delivery uses `TEST` and is not a security decision.
 
+## CLI
+
+`@vulnify/sdk` ships a `vulnify` binary. No separate package is required.
+
+```bash
+npx -p @vulnify/sdk vulnify --help
+```
+
+`vulnify init` creates `vulnify/policies/example.yaml` and `vulnify/tests/example.test.yaml`. `vulnify login` checks the key with `GET /v1/events/{id}` and stores it in `~/.config/vulnify/credentials.json` with mode `0600`. `VULNIFY_API_KEY` and `VULNIFY_BASE_URL` override that file. The default base URL is `https://api.vulnify.io`.
+
+`vulnify check` calls the SDK `check()` method (`POST /v1/events`). The exit code is `0` for `ALLOW`, `2` for `REVIEW`, and `3` for `BLOCK`, using `finalDecision`. A LIVE key (`vln_live_…`) prints a warning because the call records a real event. If Vulnify cannot be reached, the command exits `1` instead of treating the fail-closed fallback as a policy `BLOCK`.
+
+`vulnify policies validate` checks `kind: Policy` documents offline against `schema/policies.v1.json` and prints `file:line` errors. That file is the policies-as-code contract (it is also exported as `@vulnify/sdk/schema/policies.v1.json`). `spec.action` is the action family (`ANY`, `READ`, `WRITE`, `DELETE`, `EXPORT`). `spec.resource` is a resource type (`CUSTOMER_PII` and the other types the app stores), or null. A condition is the policy-engine object: `minRecords` means `recordsAffected >= n`, `maxRecords` means `recordsAffected <= n`, plus `minRiskScore`, `destination` (`EXTERNAL` or `INTERNAL`), `destinationContains`, `containsSensitiveData`, `outsideBusinessHours`, `agentIds`, `allOf`, and `anyOf`. A specific event action such as `EXPORT_DATA` belongs in `condition.action`. `recordsAffected: { gt: 1000 }` is not valid; more than 1000 records is `minRecords: 1001`.
+
+`vulnify policies pull` writes one YAML file per policy from `GET /v1/policies`. `vulnify policies apply` sends those files to `POST /v1/policies/apply` (`--dry-run`, `--prune`). `vulnify test` sends `kind: PolicyTest` cases to `POST /v1/policies/test` and exits `1` when any case fails. `--local` includes the policies in `vulnify/policies`. Test `input.action` is the event action and `input.resource` is the resource name.
+
+When pull, apply, or test receives HTTP 404, the CLI prints `This Vulnify server does not support policies as code yet` and exits `4`. An auth failure exits `5`. Every command accepts `--json`. The CLI does not send telemetry.
+
 ## Development
 
 ```bash
