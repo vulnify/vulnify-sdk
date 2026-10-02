@@ -117,17 +117,64 @@ describe('Vulnify SDK', () => {
     expect(timedOut.reasons[0]).toContain('408');
   });
 
+  it('returns finalDecision and leaves it absent when the server omits it', async () => {
+    global.fetch = reply(200, { ...allow, decision: 'REVIEW', finalDecision: 'ALLOW' }) as never;
+    const approved = await new Vulnify({ apiKey: 'k' }).check(action);
+    expect(approved.finalDecision).toBe('ALLOW');
+    expect(approved.decision).toBe('REVIEW');
+
+    global.fetch = reply(200, allow) as never;
+    const replay = await new Vulnify({ apiKey: 'k' }).check(action);
+    expect(replay.decision).toBe('ALLOW');
+    expect(Object.hasOwn(replay, 'finalDecision')).toBe(false);
+  });
+
+  it('guard() obeys finalDecision when a stored REVIEW was later approved or denied', async () => {
+    global.fetch = reply(200, { ...allow, decision: 'REVIEW', finalDecision: 'ALLOW' }) as never;
+    await expect(new Vulnify({ apiKey: 'k' }).guard(action, async () => 'ran')).resolves.toBe('ran');
+
+    global.fetch = reply(200, { ...allow, decision: 'REVIEW', finalDecision: 'BLOCK', reasons: ['denied'] }) as never;
+    const fn = jest.fn();
+    await expect(new Vulnify({ apiKey: 'k' }).guard(action, fn)).rejects.toThrow('BLOCK');
+    expect(fn).not.toHaveBeenCalled();
+
+    global.fetch = reply(200, { ...allow, decision: 'REVIEW' }) as never;
+    await expect(new Vulnify({ apiKey: 'k' }).guard(action, fn)).rejects.toThrow('REVIEW');
+  });
+
   it('reads a decision at GET /v1/events/:id with the bearer API key', async () => {
     const fetchMock = reply(200, { ...allow, id: 'evt_1' });
     global.fetch = fetchMock as never;
     const event = await new Vulnify({ apiKey: 'vln_live_x', baseUrl: 'https://api.vulnify.io' }).getEvent('evt_1');
-    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', degraded: false });
+    expect(event).toMatchObject({ id: 'evt_1', decision: 'ALLOW', degraded: false, quotaExceeded: false, sandbox: false, lgpdCategories: [] });
+    expect(Object.hasOwn(event, 'finalDecision')).toBe(false);
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.vulnify.io/v1/events/evt_1');
     expect(fetchMock.mock.calls[0][1].method ?? 'GET').toBe('GET');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer vln_live_x');
 
     global.fetch = reply(401, { message: 'Invalid API key' }) as never;
     await expect(new Vulnify({ apiKey: 'bad', failMode: 'open' }).getEvent('evt_1')).rejects.toThrow('rejected (401)');
+
+    const full = {
+      ...allow,
+      id: 'evt_2',
+      decision: 'REVIEW',
+      finalDecision: 'BLOCK',
+      lgpdCategories: ['IDENTIFICATION'],
+      quotaExceeded: true,
+      sandbox: true,
+    };
+    global.fetch = reply(200, full) as never;
+    const polled = await new Vulnify({ apiKey: 'k' }).getEvent('evt_2');
+    expect(polled).toMatchObject({
+      id: 'evt_2',
+      decision: 'REVIEW',
+      finalDecision: 'BLOCK',
+      lgpdCategories: ['IDENTIFICATION'],
+      quotaExceeded: true,
+      sandbox: true,
+      degraded: false,
+    });
   });
 
   describe('review flow', () => {

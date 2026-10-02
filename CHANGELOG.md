@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+- `check()` and `getEvent()` include optional `finalDecision`: `REVIEW` while a review is pending, `ALLOW` after approval, `BLOCK` after denial or expiry. The stored `decision` does not change. Idempotent replays of older decisions may omit `finalDecision`; obey `finalDecision ?? decision`. `guard()` follows that same rule.
+- `getEvent()` returns the same decision body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`.
+- `lgpdCategories` is the LGPD category union from the API (`IDENTIFICATION`, `CONTACT`, `LOCATION`, `FINANCIAL`, `HEALTH`, `COMPANY`, `CREDENTIALS`) instead of `string[]`. Reading the field is unchanged. Constructing a `VulnifyDecision` with any other category no longer typechecks.
+- Commit `spec/openapi.json` (fetched from `https://api.vulnify.io/openapi.json`) and generate `src/generated/openapi.ts`. CI regenerates those types from the committed spec and fails on drift. `tsc` fails if the public decision types diverge from that generated event body. The live document does not define webhook payloads, so the SDK still only verifies webhook signatures.
+
 ## 0.2.1
 
 - Client errors (4xx other than 408 and 429) throw, including 413 when the body is over the API limit. `failMode: 'open'` no longer returns a degraded `ALLOW` for a request Vulnify rejected without evaluating. 408, 429, 5xx, timeouts, and network errors still follow `failMode`.

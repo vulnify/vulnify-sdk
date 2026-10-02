@@ -1,0 +1,1769 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Vulnify API",
+    "version": "0.3.0",
+    "description": "Public machine contract for AI agents. Send an API key as `Authorization: Bearer vln_live_...` or `X-API-Key` (the same secret; not a JWT). POST /v1/events decides an action; GET /v1/events/{id} returns that same body, including finalDecision, quotaExceeded and sandbox. Contract v1."
+  },
+  "servers": [
+    {
+      "url": "https://api.vulnify.io"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Machine API",
+      "description": "Called by agents with an API key (Bearer vln_live_... / vln_test_... or X-API-Key). Contract v1."
+    }
+  ],
+  "paths": {
+    "/v1/events": {
+      "post": {
+        "operationId": "IngestController_ingest",
+        "summary": "Decide an agent action before it runs",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action"
+                ],
+                "description": "agent or agentId is required unless the API key is bound to an agent. resource or resourceId is required.",
+                "properties": {
+                  "agent": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Agent name as registered in Vulnify."
+                  },
+                  "agentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Agent id. Use this or `agent`."
+                  },
+                  "resource": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Resource name as registered in Vulnify."
+                  },
+                  "resourceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Resource id. Use this or `resource`."
+                  },
+                  "destination": {
+                    "type": "string",
+                    "enum": [
+                      "INTERNAL",
+                      "EXTERNAL_EMAIL",
+                      "EXTERNAL_API"
+                    ]
+                  },
+                  "recordsAffected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "Optional text scanned for sensitive data. Scanned in memory and never stored."
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "READ_DATA",
+                      "WRITE_DATA",
+                      "DELETE_DATA",
+                      "EXPORT_DATA",
+                      "SEND_EMAIL"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotent-Replay": {
+                "description": "\"true\" when the body is a stored replay",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "required": [
+                    "id",
+                    "decision",
+                    "finalDecision",
+                    "evaluatedDecision",
+                    "monitored",
+                    "riskLevel",
+                    "riskScore",
+                    "reasons",
+                    "policy",
+                    "dlpFindings",
+                    "lgpdCategories",
+                    "review",
+                    "quotaExceeded",
+                    "sandbox"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Decision recorded on the event. It does not change when a review is resolved."
+                    },
+                    "finalDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry."
+                    },
+                    "evaluatedDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "What full enforcement would have decided. Differs from `decision` in monitor mode."
+                    },
+                    "monitored": {
+                      "type": "boolean"
+                    },
+                    "riskLevel": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH",
+                        "CRITICAL"
+                      ]
+                    },
+                    "riskScore": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "policy": {
+                      "nullable": true,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "dlpFindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Sensitive-data types found in `content`."
+                    },
+                    "lgpdCategories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IDENTIFICATION",
+                          "CONTACT",
+                          "LOCATION",
+                          "FINANCIAL",
+                          "HEALTH",
+                          "COMPANY",
+                          "CREDENTIALS"
+                        ]
+                      },
+                      "description": "LGPD categories derived from `dlpFindings`."
+                    },
+                    "review": {
+                      "nullable": true,
+                      "description": "Null when the event has no human review.",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "expiresAt",
+                        "decidedAt",
+                        "note"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "DENIED",
+                            "EXPIRED"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "quotaExceeded": {
+                      "type": "boolean",
+                      "description": "Plan quota is over the limit. The decision is still made."
+                    },
+                    "sandbox": {
+                      "type": "boolean",
+                      "description": "True when the event was created with a TEST key."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (agent/agentId and resource/resourceId are required)",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or expired API key",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key bound to another agent, or caller IP not in the key allowlist",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown agent, resource or gateway route",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body larger than 200 KB",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "apiKeyBearer": []
+          }
+        ],
+        "tags": [
+          "Machine API"
+        ]
+      }
+    },
+    "/v1/events/{id}": {
+      "get": {
+        "operationId": "IngestController_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The same decision body as POST /v1/events, including quotaExceeded, sandbox and finalDecision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "required": [
+                    "id",
+                    "decision",
+                    "finalDecision",
+                    "evaluatedDecision",
+                    "monitored",
+                    "riskLevel",
+                    "riskScore",
+                    "reasons",
+                    "policy",
+                    "dlpFindings",
+                    "lgpdCategories",
+                    "review",
+                    "quotaExceeded",
+                    "sandbox"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Decision recorded on the event. It does not change when a review is resolved."
+                    },
+                    "finalDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry."
+                    },
+                    "evaluatedDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "What full enforcement would have decided. Differs from `decision` in monitor mode."
+                    },
+                    "monitored": {
+                      "type": "boolean"
+                    },
+                    "riskLevel": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH",
+                        "CRITICAL"
+                      ]
+                    },
+                    "riskScore": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "policy": {
+                      "nullable": true,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "dlpFindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Sensitive-data types found in `content`."
+                    },
+                    "lgpdCategories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IDENTIFICATION",
+                          "CONTACT",
+                          "LOCATION",
+                          "FINANCIAL",
+                          "HEALTH",
+                          "COMPANY",
+                          "CREDENTIALS"
+                        ]
+                      },
+                      "description": "LGPD categories derived from `dlpFindings`."
+                    },
+                    "review": {
+                      "nullable": true,
+                      "description": "Null when the event has no human review.",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "expiresAt",
+                        "decidedAt",
+                        "note"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "DENIED",
+                            "EXPIRED"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "quotaExceeded": {
+                      "type": "boolean",
+                      "description": "Plan quota is over the limit. The decision is still made."
+                    },
+                    "sandbox": {
+                      "type": "boolean",
+                      "description": "True when the event was created with a TEST key."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or agent/resource was not identified",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or expired API key",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API key is bound to another agent, or the caller IP is not in the key allowlist",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown agent, resource, event or gateway route",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Machine API"
+        ],
+        "summary": "Read a decision and its review status (poll a REVIEW)",
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "apiKeyBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/gateway/http": {
+      "post": {
+        "operationId": "GatewayIngestController_http",
+        "summary": "Decide an HTTP call and, when ALLOWed, forward it to a registered route",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "action"
+                ],
+                "description": "Same action fields as POST /v1/events, plus the registered route and the path to append.",
+                "properties": {
+                  "agent": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Agent name as registered in Vulnify."
+                  },
+                  "agentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Agent id. Use this or `agent`."
+                  },
+                  "resource": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Resource name as registered in Vulnify."
+                  },
+                  "resourceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Resource id. Use this or `resource`."
+                  },
+                  "destination": {
+                    "type": "string",
+                    "enum": [
+                      "INTERNAL",
+                      "EXTERNAL_EMAIL",
+                      "EXTERNAL_API"
+                    ]
+                  },
+                  "recordsAffected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "Optional text scanned for sensitive data. Scanned in memory and never stored."
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "READ_DATA",
+                      "WRITE_DATA",
+                      "DELETE_DATA",
+                      "EXPORT_DATA",
+                      "SEND_EMAIL"
+                    ]
+                  },
+                  "routeId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Registered HTTP route. Without it the gateway only decides."
+                  },
+                  "path": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "Path and query appended to the route base URL. Must start with /."
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "GET",
+                      "POST",
+                      "PUT",
+                      "PATCH",
+                      "DELETE"
+                    ],
+                    "description": "Defaults to GET."
+                  },
+                  "body": {
+                    "description": "JSON value forwarded upstream when method is not GET."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotent-Replay": {
+                "description": "\"true\" when the body is a stored replay",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "required": [
+                    "id",
+                    "decision",
+                    "finalDecision",
+                    "evaluatedDecision",
+                    "monitored",
+                    "riskLevel",
+                    "riskScore",
+                    "reasons",
+                    "policy",
+                    "dlpFindings",
+                    "lgpdCategories",
+                    "review",
+                    "quotaExceeded",
+                    "sandbox"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Decision recorded on the event. It does not change when a review is resolved."
+                    },
+                    "finalDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry."
+                    },
+                    "evaluatedDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "What full enforcement would have decided. Differs from `decision` in monitor mode."
+                    },
+                    "monitored": {
+                      "type": "boolean"
+                    },
+                    "riskLevel": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH",
+                        "CRITICAL"
+                      ]
+                    },
+                    "riskScore": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "policy": {
+                      "nullable": true,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "dlpFindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Sensitive-data types found in `content`."
+                    },
+                    "lgpdCategories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IDENTIFICATION",
+                          "CONTACT",
+                          "LOCATION",
+                          "FINANCIAL",
+                          "HEALTH",
+                          "COMPANY",
+                          "CREDENTIALS"
+                        ]
+                      },
+                      "description": "LGPD categories derived from `dlpFindings`."
+                    },
+                    "review": {
+                      "nullable": true,
+                      "description": "Null when the event has no human review.",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "expiresAt",
+                        "decidedAt",
+                        "note"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "DENIED",
+                            "EXPIRED"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "quotaExceeded": {
+                      "type": "boolean",
+                      "description": "Plan quota is over the limit. The decision is still made."
+                    },
+                    "sandbox": {
+                      "type": "boolean",
+                      "description": "True when the event was created with a TEST key."
+                    },
+                    "gateway": {
+                      "type": "object",
+                      "required": [
+                        "protocol",
+                        "proxied"
+                      ],
+                      "properties": {
+                        "protocol": {
+                          "type": "string",
+                          "enum": [
+                            "HTTP"
+                          ]
+                        },
+                        "routeId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        },
+                        "proxied": {
+                          "type": "boolean"
+                        },
+                        "credentialId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        },
+                        "upstream": {
+                          "nullable": true,
+                          "description": "Null when the call was not forwarded. `status` is null when the upstream call failed before a response.",
+                          "type": "object",
+                          "required": [
+                            "status",
+                            "truncatedBody",
+                            "error",
+                            "latencyMs"
+                          ],
+                          "properties": {
+                            "status": {
+                              "type": "integer",
+                              "nullable": true,
+                              "description": "Upstream HTTP status, or null when the call failed before a response."
+                            },
+                            "truncatedBody": {
+                              "type": "string",
+                              "description": "Upstream body, truncated to 2 KB. Injected secrets are redacted."
+                            },
+                            "error": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "latencyMs": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (agent/agentId and resource/resourceId are required)",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or expired API key",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key bound to another agent, or caller IP not in the key allowlist",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown agent, resource or gateway route",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body larger than 200 KB",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "apiKeyBearer": []
+          }
+        ],
+        "tags": [
+          "Machine API"
+        ]
+      }
+    },
+    "/v1/gateway/mcp": {
+      "post": {
+        "operationId": "GatewayIngestController_mcp",
+        "summary": "Decide an MCP tool call (the tool name is mapped to an action)",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Retries with the same key (per organization and endpoint) return the stored decision instead of deciding again.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tool"
+                ],
+                "properties": {
+                  "agent": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Agent name as registered in Vulnify."
+                  },
+                  "agentId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Agent id. Use this or `agent`."
+                  },
+                  "resource": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Resource name as registered in Vulnify."
+                  },
+                  "resourceId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Resource id. Use this or `resource`."
+                  },
+                  "destination": {
+                    "type": "string",
+                    "enum": [
+                      "INTERNAL",
+                      "EXTERNAL_EMAIL",
+                      "EXTERNAL_API"
+                    ]
+                  },
+                  "recordsAffected": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "content": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "Optional text scanned for sensitive data. Scanned in memory and never stored."
+                  },
+                  "routeId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Registered MCP route (supplies a default agent)."
+                  },
+                  "tool": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "MCP tool name. Mapped to an action by substring."
+                  },
+                  "arguments": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Tool arguments. Not executed by Vulnify."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision: { id, decision, finalDecision, evaluatedDecision, monitored, riskLevel, riskScore, reasons, policy, dlpFindings, lgpdCategories, review, quotaExceeded, sandbox }. decision is the stored outcome and does not change when a review is resolved. finalDecision is the effective outcome (ALLOW after approval, BLOCK after denial or expiry, REVIEW while pending). quotaExceeded flags a plan overrun without blocking; sandbox is true for TEST keys.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotent-Replay": {
+                "description": "\"true\" when the body is a stored replay",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "required": [
+                    "id",
+                    "decision",
+                    "finalDecision",
+                    "evaluatedDecision",
+                    "monitored",
+                    "riskLevel",
+                    "riskScore",
+                    "reasons",
+                    "policy",
+                    "dlpFindings",
+                    "lgpdCategories",
+                    "review",
+                    "quotaExceeded",
+                    "sandbox"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Decision recorded on the event. It does not change when a review is resolved."
+                    },
+                    "finalDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "Effective outcome. Equals `decision` when there is no review. REVIEW while a review is pending. ALLOW after approval, BLOCK after denial or expiry."
+                    },
+                    "evaluatedDecision": {
+                      "type": "string",
+                      "enum": [
+                        "ALLOW",
+                        "REVIEW",
+                        "BLOCK"
+                      ],
+                      "description": "What full enforcement would have decided. Differs from `decision` in monitor mode."
+                    },
+                    "monitored": {
+                      "type": "boolean"
+                    },
+                    "riskLevel": {
+                      "type": "string",
+                      "enum": [
+                        "LOW",
+                        "MEDIUM",
+                        "HIGH",
+                        "CRITICAL"
+                      ]
+                    },
+                    "riskScore": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "policy": {
+                      "nullable": true,
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "dlpFindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Sensitive-data types found in `content`."
+                    },
+                    "lgpdCategories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "IDENTIFICATION",
+                          "CONTACT",
+                          "LOCATION",
+                          "FINANCIAL",
+                          "HEALTH",
+                          "COMPANY",
+                          "CREDENTIALS"
+                        ]
+                      },
+                      "description": "LGPD categories derived from `dlpFindings`."
+                    },
+                    "review": {
+                      "nullable": true,
+                      "description": "Null when the event has no human review.",
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "expiresAt",
+                        "decidedAt",
+                        "note"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "DENIED",
+                            "EXPIRED"
+                          ]
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "decidedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true
+                        },
+                        "note": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "quotaExceeded": {
+                      "type": "boolean",
+                      "description": "Plan quota is over the limit. The decision is still made."
+                    },
+                    "sandbox": {
+                      "type": "boolean",
+                      "description": "True when the event was created with a TEST key."
+                    },
+                    "gateway": {
+                      "type": "object",
+                      "required": [
+                        "protocol",
+                        "tool",
+                        "mappedAction",
+                        "allowed"
+                      ],
+                      "properties": {
+                        "protocol": {
+                          "type": "string",
+                          "enum": [
+                            "MCP"
+                          ]
+                        },
+                        "routeId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "nullable": true
+                        },
+                        "tool": {
+                          "type": "string"
+                        },
+                        "mappedAction": {
+                          "type": "string",
+                          "enum": [
+                            "READ_DATA",
+                            "WRITE_DATA",
+                            "DELETE_DATA",
+                            "EXPORT_DATA",
+                            "SEND_EMAIL"
+                          ]
+                        },
+                        "allowed": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (agent/agentId and resource/resourceId are required)",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or expired API key",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key bound to another agent, or caller IP not in the key allowlist",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown agent, resource or gateway route",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "JSON body larger than 200 KB",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request id for support and log correlation (a caller-sent plain id is kept).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-api-version": {
+                "description": "Machine API contract (v1).",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-vulnify-version": {
+                "description": "API build (SemVer, see /changelog).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "apiKeyBearer": []
+          }
+        ],
+        "tags": [
+          "Machine API"
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key as a Bearer token: `Authorization: Bearer vln_live_...` or `vln_test_...`. The machine API guard accepts this or the X-API-Key header. This is not a JWT."
+      },
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key (`vln_live_...` or `vln_test_...`). Equivalent to Authorization: Bearer with the same key."
+      }
+    }
+  }
+}
