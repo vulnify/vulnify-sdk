@@ -15,6 +15,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Validate SVG and XML
+        run: |
+          if ! command -v xmllint >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y libxml2-utils
+          fi
+          npm run check:svg
       - run: npm run check:api
       - run: npm run lint
       - run: npm test

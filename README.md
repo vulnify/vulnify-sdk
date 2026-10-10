@@ -98,7 +98,7 @@ A `REVIEW` is approved on the Vulnify server. This process does not approve it a
 
 ## How it works
 
-Obey `finalDecision`. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Current responses always include it, including idempotent replays.
+`finalDecision` is the authoritative result. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Current responses always include it, including idempotent replays.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/how-it-works.svg" alt="An agent action goes to check(). The result is ALLOW (run the action), REVIEW (wait for a person), or BLOCK (do not run it)." width="800">
@@ -108,7 +108,7 @@ Obey `finalDecision`. `decision` is the outcome recorded on the event and does n
 - `REVIEW` — do not run the action. `review.status` starts as `PENDING`. Tell the caller a human must approve.
 - `BLOCK` — do not run the action. A denied or expired review keeps the stored `decision` (often `REVIEW`) and sets `finalDecision` to `BLOCK`.
 
-`evaluatedDecision` is what enforcement would have returned. In monitor mode the event is stored and not enforced (`monitored` is `true`): still obey `finalDecision`. `getEvent()` returns the same body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`.
+`evaluatedDecision` is what enforcement would have returned. In monitor mode the event is stored and not enforced (`monitored` is `true`). `finalDecision` is the authoritative result. `getEvent()` returns the same body as `check()`, including `quotaExceeded`, `sandbox`, and `lgpdCategories`.
 
 `failMode` defaults to `'closed'`. A timeout, a network error, or a transient response (408, 429, or 5xx) becomes `decision: 'BLOCK'`, `degraded: true`, and a reason beginning with `Vulnify unavailable`. Set `failMode: 'open'` only when an outage should let the action through. Any other 4xx throws, including 413 when the body is over the API limit, so a rejected request is not treated as an outage.
 

@@ -13,9 +13,9 @@
   <path d="M532 110 H592" stroke="#3D6DFF" stroke-width="2" fill="none"/>
   <path d="M584 104 L596 110 L584 116" stroke="#3D6DFF" stroke-width="2" fill="none"/>
   <rect x="608" y="24" width="316" height="48" rx="10" fill="#12261A" stroke="#9DDEC0"/>
-  <text x="766" y="53" text-anchor="middle" fill="#9DDEC0" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">ALLOW  run the action</text>
+  <text x="766" y="53" text-anchor="middle" fill="#9DDEC0" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">ALLOW &#8212; run the action</text>
   <rect x="608" y="86" width="316" height="48" rx="10" fill="#2A2414" stroke="#E6C98A"/>
-  <text x="766" y="115" text-anchor="middle" fill="#E6C98A" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">REVIEW  wait for a person</text>
+  <text x="766" y="115" text-anchor="middle" fill="#E6C98A" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">REVIEW &#8212; wait for a person</text>
   <rect x="608" y="148" width="316" height="48" rx="10" fill="#2C1818" stroke="#F0B2AC"/>
-  <text x="766" y="177" text-anchor="middle" fill="#F0B2AC" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">BLOCK  do not run it</text>
+  <text x="766" y="177" text-anchor="middle" fill="#F0B2AC" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="600">BLOCK &#8212; do not run it</text>
 </svg>

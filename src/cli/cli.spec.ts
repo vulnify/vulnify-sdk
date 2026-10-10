@@ -119,7 +119,7 @@ describe('vulnify CLI', () => {
 
     const version = await h.run(['--version']);
     expect(version.code).toBe(0);
-    expect(version.out.trim()).toBe('0.3.2');
+    expect(version.out.trim()).toBe('0.3.3');
 
     const missing = await h.run([]);
     expect(missing.code).toBe(1);

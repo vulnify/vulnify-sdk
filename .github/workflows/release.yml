@@ -34,6 +34,13 @@ jobs:
           node -e 'const [major, minor, patch] = process.argv[1].split(".").map(Number); if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) { console.error("npm " + process.argv[1] + " is older than 11.5.1"); process.exit(1); }' "$ver"
 
       - run: npm ci
+      - name: Validate SVG and XML
+        run: |
+          if ! command -v xmllint >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y libxml2-utils
+          fi
+          npm run check:svg
       - run: npm run check:api
       - run: npm run lint
       - run: npm test

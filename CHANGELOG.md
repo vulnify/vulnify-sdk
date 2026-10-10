@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3
+
+- The how-it-works diagram is valid XML. The decision labels used a raw control character, which GitHub and npm could not render.
+- `finalDecision` is the authoritative result.
+
 ## 0.3.2
 
 - docs: report vulnerabilities to security@vulnify.io (https://www.vulnify.io/disclosure). Note that the MCP server is public at https://github.com/vulnify/vulnify-mcp and that `@vulnify/mcp` is being published.

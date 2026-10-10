@@ -1,6 +1,6 @@
 {
   "name": "@vulnify/sdk",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Vulnify SDK and CLI: ask whether an AI agent action is allowed before it runs, and manage policies as code.",
   "keywords": [
     "vulnify",
@@ -59,7 +59,8 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "check:package": "publint && attw --pack . && node scripts/verify-package.mjs",
     "generate:api": "openapi-typescript spec/openapi.json -o src/generated/openapi.ts",
-    "check:api": "node scripts/check-openapi.mjs"
+    "check:api": "node scripts/check-openapi.mjs",
+    "check:svg": "node scripts/check-svg.mjs"
   },
   "dependencies": {
     "ajv": "^8.17.1",
