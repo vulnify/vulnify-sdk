@@ -3,6 +3,7 @@
 ## 0.3.2
 
 - docs: report vulnerabilities to security@vulnify.io (https://www.vulnify.io/disclosure). Note that the MCP server is public at https://github.com/vulnify/vulnify-mcp and that `@vulnify/mcp` is being published.
+- docs: README banner is the approved 2400×800 frame, shown at width 800.
 
 ## 0.3.1
 

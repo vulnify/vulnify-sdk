@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Vulnify. Decide every AI agent action before it runs. ALLOW, REVIEW, or BLOCK, with the reasons and the proof." width="800">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/banner.png" alt="Every agent action gets a decision." width="800">
 </p>
 
 <h1 align="center">@vulnify/sdk</h1>
