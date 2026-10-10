@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Vulnify. Decide every AI agent action before it runs. ALLOW, REVIEW, or BLOCK, with the reasons and the proof." width="800">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/banner.png" alt="Every agent action gets a decision." width="800">
 </p>
 
 <h1 align="center">@vulnify/sdk</h1>
@@ -124,7 +124,7 @@ Optional `content` is scanned for sensitive data and is not stored. Matches retu
 
 ## MCP server
 
-The Vulnify MCP server is separate from this package and from `POST /v1/gateway/mcp`.
+The MCP server is public at [github.com/vulnify/vulnify-mcp](https://github.com/vulnify/vulnify-mcp). Its npm package, `@vulnify/mcp`, is being published. That server is separate from this package and from `POST /v1/gateway/mcp`.
 
 Hosted server: `https://mcp.vulnify.io/mcp`. Send the API key as `Authorization: Bearer <key>` or as `X-Vulnify-Key`.
 
@@ -236,7 +236,7 @@ Questions and bug reports: [GitHub issues](https://github.com/vulnify/vulnify-sd
 
 ## Security
 
-Report a vulnerability through [GitHub private vulnerability reporting](https://github.com/vulnify/vulnify-sdk/security/advisories/new). See [SECURITY.md](SECURITY.md).
+Report a vulnerability to [security@vulnify.io](mailto:security@vulnify.io). The disclosure process is at [vulnify.io/disclosure](https://www.vulnify.io/disclosure). See [SECURITY.md](SECURITY.md).
 
 ## License
 
