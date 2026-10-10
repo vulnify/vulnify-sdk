@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Vulnify. Decide every AI agent action before it runs. ALLOW, REVIEW, or BLOCK, with the reasons and the proof." width="720">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Every agent action gets a decision. ALLOW, REVIEW, or BLOCK." width="800">
 </p>
 
 <h1 align="center">@vulnify/sdk</h1>
@@ -101,7 +101,7 @@ A `REVIEW` is approved on the Vulnify server. This process does not approve it a
 Obey `finalDecision`. `decision` is the outcome recorded on the event and does not change when a review is resolved. `finalDecision` is the effective outcome: `REVIEW` while a review is pending, `ALLOW` after approval, and `BLOCK` after denial or expiry. Current responses always include it, including idempotent replays.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/how-it-works.svg" alt="An agent action goes to check(). The result is ALLOW (run the action), REVIEW (wait for a person), or BLOCK (do not run it)." width="720">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/how-it-works.svg" alt="An agent action goes to check(). The result is ALLOW (run the action), REVIEW (wait for a person), or BLOCK (do not run it)." width="800">
 </p>
 
 - `ALLOW` — run the action. `riskScore` is 0–100. `reasons` explains the score.
@@ -119,15 +119,15 @@ Optional `content` is scanned for sensitive data and is not stored. Matches retu
 ## Product
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/block-detail.webp" alt="A blocked SalesBot export of customer records to an external email, with the risk score and reasons." width="720">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/block-detail.webp" alt="A blocked SalesBot export of customer records to an external email, with the risk score and reasons." width="800">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/allow-detail.webp" alt="An allowed SupportBot read of one customer record inside the network." width="720">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/allow-detail.webp" alt="An allowed SupportBot read of one customer record inside the network." width="800">
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/audit-logs.webp" alt="Audit log of SalesBot and SupportBot decisions, each marked allowed." width="720">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/audit-logs.webp" alt="Audit log of SalesBot and SupportBot decisions, each marked allowed." width="800">
 </p>
 
 ## MCP server
