@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- docs: README refresh
+
 ## 0.3.0
 
 - Add the `vulnify` CLI (`npx -p @vulnify/sdk vulnify`): `init`, `login`, `check`, `policies validate`, `policies pull`, `policies apply`, and `test`. `--json` is available on every command. Exit codes are 0 (ok or ALLOW), 1 (validation or test failure), 2 (REVIEW), 3 (BLOCK), 4 (the server has no policies-as-code API), and 5 (auth).
