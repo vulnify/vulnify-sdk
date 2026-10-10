@@ -5,11 +5,20 @@
   "keywords": [
     "vulnify",
     "sdk",
+    "cli",
     "authorization",
+    "runtime-authorization",
     "security",
     "ai-agents",
-    "runtime-authorization",
-    "cli"
+    "agent-security",
+    "guardrails",
+    "human-in-the-loop",
+    "policy-as-code",
+    "langchain",
+    "vercel-ai-sdk",
+    "ai-sdk",
+    "openai-agents",
+    "mcp"
   ],
   "homepage": "https://docs.vulnify.io",
   "bugs": {
