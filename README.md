@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Every agent action gets a decision. ALLOW, REVIEW, or BLOCK." width="800">
+  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/og-1200x630.png" alt="Vulnify. Decide every AI agent action before it runs. ALLOW, REVIEW, or BLOCK, with the reasons and the proof." width="800">
 </p>
 
 <h1 align="center">@vulnify/sdk</h1>
@@ -117,14 +117,6 @@ An evidence or audit export is a JSON or CSV download that includes a SHA-256 ch
 Optional `content` is scanned for sensitive data and is not stored. Matches return on `dlpFindings`.
 
 ## Product
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/block-detail.webp" alt="A blocked SalesBot export of customer records to an external email, with the risk score and reasons." width="800">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/allow-detail.webp" alt="An allowed SupportBot read of one customer record inside the network." width="800">
-</p>
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/vulnify/vulnify-sdk/main/.github/assets/audit-logs.webp" alt="Audit log of SalesBot and SupportBot decisions, each marked allowed." width="800">
