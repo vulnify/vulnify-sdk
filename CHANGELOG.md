@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+- docs: report vulnerabilities to security@vulnify.io (https://www.vulnify.io/disclosure). Note that the MCP server is public at https://github.com/vulnify/vulnify-mcp and that `@vulnify/mcp` is being published.
+
 ## 0.3.1
 
 - docs: README refresh
